@@ -1,3 +1,4 @@
+# import libraries
 from msilib.schema import tables
 import dash
 import dash_html_components as html
@@ -10,9 +11,10 @@ from ast import literal_eval
 import numpy as np
 
 
-
+# initialize dash
 app = dash.Dash()
 
+# read data
 data = pd.read_csv("statistics_data.csv")
 
 #company function
@@ -61,22 +63,32 @@ def search(company):
     
     return dct
 
+# list of companies
+list_companies = []
+with open('companies.txt') as f:
+    lines = f.readlines()
+    for line in lines:
+        line = line.strip()
+        list_companies.append(line)
+
+# test search
+print(search('OCP'))
+
 #variables
 Main_ORG = search('OCP')['Main_ORG']
 avril = search('OCP')['avril']
 mai = search('OCP')['mai']
 orgs = search('OCP')['orgs']
 
+
+
+
 app.layout = html.Div(id = 'parent', children = [
     html.H1(id = 'H1', children = f'{Main_ORG}', style = {'textAlign':'center',\
                                             'marginTop':40,'marginBottom':40}),
 
         dcc.Dropdown( id = 'dropdown',
-        options = [
-            {'label':'OCP', 'value':'OCP' },
-            {'label': 'ORANGE', 'value':'ORANGE'},
-            {'label': 'CMA CGM', 'value':'CMA CGM'},
-            ],
+        options = list_companies,
         value = '--select company--'),
         dcc.Graph(id = 'bar_plot')
 
@@ -96,20 +108,21 @@ def graph_update(dropdown_value):
                       yaxis_title = 'Number OF Post'
                       )
     return fig
-fig = px.bar(data, x="month", y="MAIN_ORG", color="sentiments", barmode="group")
+    
+# fig = px.bar(data, x="month", y="MAIN_ORG", color="sentiments", barmode="group")
 
-app.layout = html.Div(children=[
-    html.H1(children='Hello Dash'),
+# app.layout = html.Div(children=[
+#     html.H1(children='Hello Dash'),
 
-    html.Div(children='''
-        Dash: A web application framework for your data.
-    '''),
+#     html.Div(children='''
+#         Dash: A web application framework for your data.
+#     '''),
 
-    dcc.Graph(
-        id='example-graph',
-        figure=fig
-    )
-])
+#     dcc.Graph(
+#         id='example-graph',
+#         figure=fig
+#     )
+# ])
 
 if __name__ == '__main__': 
     app.run_server()
