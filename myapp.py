@@ -9,59 +9,20 @@ from dash.dependencies import Input, Output
 import pandas as pd
 from ast import literal_eval
 import numpy as np
-
-
-# initialize dash
-app = dash.Dash()
+import dash_bootstrap_components as dbc
+from search_fct import search
+from dash import html
 
 # read data
 data = pd.read_csv("statistics_data.csv")
 
-#company function
-def search(company):
-    dct = {}
-    dct['Main_ORG'] = company
-    texts = []
-    orgs = []
-    regex = ".*"+company+".*"
-    df_company = data[data.MAIN_ORG.str.match(regex)].reset_index(drop=True)
-    #number of posts by company
-    posts_number = df_company.shape[0]
-    #get texts
-    texts = df_company['text'].values.tolist()
-    dct['texts'] = texts
-    #orgs
-    for i in range(len(df_company)):
-        if df_company['ORGS'][i] != 'no organisation':
-            orgs.extend(literal_eval(df_company['ORGS'][i]))
-    dct['orgs'] = orgs
-    #group by month
-    df_company = df_company.groupby('month')
-    #get group for avril
-    df_avril = df_company.get_group('avril')
-    #get group for mai
-    df_mai = df_company.get_group('mai')
-    
-    #positive and negative rate
-    #statistics for avril
-    dct['avril'] = {}
-    positive_rate_avril = np.round((len(df_avril.loc[df_avril['score'] == 1]) / len(df_avril['score']))*100 , 2)
-    negative_rate_avril = np.round((len(df_avril.loc[df_avril['score'] == 0]) / len(df_avril['score']))*100 , 2)
-    dct['avril']['positive_rate'] = positive_rate_avril
-    dct['avril']['negative_rate'] = negative_rate_avril
-    #number of posts by company by month
-    dct['avril']['number_of_posts'] = df_avril.shape[0]
-    
-    #statistics for mai
-    dct['mai'] = {}
-    positive_rate_mai = np.round((len(df_mai.loc[df_mai['score'] == 1]) / len(df_mai['score']))*100 , 2)
-    negative_rate_mai = np.round((len(df_mai.loc[df_mai['score'] == 0]) / len(df_mai['score']))*100 , 2)
-    dct['mai']['positive_rate'] = positive_rate_mai
-    dct['mai']['negative_rate'] = negative_rate_mai
-    #number of posts by company by month
-    dct['mai']['number_of_posts'] = df_mai.shape[0]
-    
-    return dct
+# initialize dash
+app = dash.Dash()
+
+#initialize dash-bootstrap components
+app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+
 
 # list of companies
 list_companies = []
@@ -72,9 +33,9 @@ with open('companies.txt') as f:
         list_companies.append(line)
 
 # test search
-print(search('OCP'))
+# print(search('OCP'))
 
-#variables
+#variables (example of OCP)
 Main_ORG = search('OCP')['Main_ORG']
 avril = search('OCP')['avril']
 mai = search('OCP')['mai']
@@ -82,23 +43,98 @@ orgs = search('OCP')['orgs']
 
 
 
-
-app.layout = html.Div(id = 'parent', children = [
-    html.H1(id = 'H1', children = f'{Main_ORG}', style = {'textAlign':'center',\
-                                            'marginTop':40,'marginBottom':40}),
+#component
+app.layout = html.Div(children=[
+    dbc.Row(
+        html.Div([
+            html.H1(id = 'H1', children = "Companies E-Reputation", style = {'textAlign':'center',\
+                                            'marginTop':40,'marginBottom':40 , 'fontFamily':'Arial','fontWeight':'bold'}),
 
         dcc.Dropdown( id = 'dropdown',
         options = list_companies,
-        value = '--select company--'),
-        dcc.Graph(id = 'bar_plot')
-
+        value = '--select company--')
+        ]
+        )
+    )
+,
+# add blank space between search bar and 2nd row to ensure visibility
+html.Div(
+  style={
+      "height":10  
+  }
+),
+#grid layout (2 columns)
+dbc.Row(
+    [
+        #first column contains informations and staistics
+        dbc.Col([
+            #this row contains 3 cards describing (company name ,posts number & impressions)
+            dbc.Row(
+                [
+                    dbc.Col(  dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H5("COMPANY NAME", className="card-title"),
+                    html.P(
+                        "This card has some text content.",
+                        className="card-text",
+                    ),
+                ]
+            )
+        )),
+                    dbc.Col(
+                          dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H5("NUMBER OF POSTS", className="card-title"),
+                    html.P(
+                        "This card has some text content.",
+                        className="card-text",
+                    ),
+                ]
+            )
+        )
+                    ),
+                    dbc.Col(  dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H5("IMPRESSIONS", className="card-title"),
+                    html.P(
+                        "This card has some text content.",
+                        className="card-text",
+                    ),
+                ]
+            )
+        ))
+                ]
+            ),
+            dbc.Row()
+        ]),
+        #second column(consists of 2 rows) contains 2 plots 
+        dbc.Col([
+            #first row contains a line chart (number of posts per month)
+            dbc.Row(
+               html.Div([
+            dcc.Graph(id = 'bar_plot')]
+        )
+            ),
+             #second row contains a bubble chart (number of posts per month)
+            dbc.Row(
+                html.Div(["bubble chart"])
+            )
+            ]
+        )
+    ],
+    className="g-0",
+)
     ])
+
+
 
     
 @app.callback(Output(component_id='bar_plot', component_property= 'figure'),
               [Input(component_id='dropdown', component_property= 'value')])
 def graph_update(dropdown_value):
-    print(dropdown_value)
     fig = go.Figure([go.Scatter(x = data['month'], y = avril['number_of_posts'],\
                      line = dict(color = 'firebrick', width = 4))
                      ])
